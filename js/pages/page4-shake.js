@@ -112,12 +112,18 @@ const Page4 = (() => {
 
   function onDeviceOrientation(e) {
     // gamma: 左右倾斜（-90到90），beta: 前后倾斜（-180到180）
-    const gamma = e.gamma || 0; // 左右
-    const beta  = e.beta  || 0; // 前后
+    const gamma = e.gamma || 0;
+    const beta  = e.beta  || 0;
 
-    // 映射到重力向量（最大加速度）
-    gravX = clamp(gamma / 45, -1, 1) * 0.4;
-    gravY = clamp((beta - 45) / 45, -1, 1) * 0.4; // 平放时 beta≈0
+    // 平放时 beta≈0、gamma≈0，此时不施加重力
+    // 竖屏握持时 beta≈90，向左右倾斜时 gamma 偏移
+    // 用死区 ±8° 避免平放时漂移
+    const deadZone = 8;
+    const gx = Math.abs(gamma) > deadZone ? gamma / 60 : 0;
+    const gy = Math.abs(beta) > deadZone ? (beta - 0) / 60 : 0; // 平放基准 beta=0
+
+    gravX = clamp(gx, -1, 1) * 0.8;  // 加速度加倍
+    gravY = clamp(gy, -1, 1) * 0.8;
   }
 
   function onShake() {
@@ -194,9 +200,9 @@ const Page4 = (() => {
         dot.vx += gravX;
         dot.vy += gravY;
 
-        // 阻尼
-        dot.vx *= 0.92;
-        dot.vy *= 0.92;
+        // 阻尼（降低阻尼让移动更顺滑）
+        dot.vx *= 0.96;
+        dot.vy *= 0.96;
 
         dot.x += dot.vx;
         dot.y += dot.vy;

@@ -397,7 +397,7 @@ html, body {
 }
 
 /* ============================================================
-   导航箭头
+   导航箭头（前进 + 后退）
    ============================================================ */
 .nav-arrow {
   position: absolute;
@@ -410,6 +410,20 @@ html, body {
   z-index: 10;
   padding: 10px;
   line-height: 1;
+}
+
+.nav-arrow.back-btn {
+  right: auto;
+  left: 40px;
+  color: #aaa;
+  font-size: 44px;
+  animation: none;
+  opacity: 0.7;
+}
+
+.nav-arrow.back-btn:active {
+  opacity: 1;
+  transform: scale(0.9);
 }
 
 /* ============================================================

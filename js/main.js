@@ -47,20 +47,17 @@ const App = (() => {
     goToPage(currentPage + 1);
   }
 
-  // 绑定"下一页"按钮（通用，带 data-target 属性的箭头）
+  // 绑定翻页按钮（前进 + 后退，通过 data-target 指定目标页）
   function bindNavArrows() {
-    document.querySelectorAll('.next-page-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+    document.querySelectorAll('.next-page-btn, .prev-page-btn').forEach(btn => {
+      const handler = (e) => {
+        if (e.type === 'touchend') e.preventDefault();
         const target = parseInt(btn.dataset.target);
         if (!isNaN(target)) goToPage(target);
         else nextPage();
-      });
-      btn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        const target = parseInt(btn.dataset.target);
-        if (!isNaN(target)) goToPage(target);
-        else nextPage();
-      });
+      };
+      btn.addEventListener('click', handler);
+      btn.addEventListener('touchend', handler, { passive: false });
     });
   }
 

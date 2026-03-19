@@ -1,194 +1,162 @@
 /**
- * page3-explode.js - 圆点大爆炸（多段式）
- * 长按1.5秒触发分裂：1→2→4→8→16
- * 每个圆点都可再次长按继续分裂（直到16个为止）
- * 点击任意圆点可变色
+ * page3-explode.js - 圆点分裂
+ * 点击一个圆点 → 变成两个圆点（各 0.75 倍大小），可无限点击分裂
+ * 圆点越来越小，最小 18px 后不再分裂（只变色）
  */
 
 const Page3 = (() => {
   const COLORS = ['#FF4757', '#FF6B35', '#FFD700', '#2ED573', '#1E90FF', '#5352ED', '#A055FF'];
-  // 分裂级数：1 → 2 → 4 → 8 → 16
-  const SPLIT_LEVELS = [1, 2, 4, 8, 16];
+  const MIN_SIZE = 18; // 最小不再分裂
+  const SPLIT_RATIO = 0.72; // 每次分裂后子点大小比例
 
   let initialized = false;
-  let currentLevel = 0; // 当前在 SPLIT_LEVELS 的索引
+  let dotList = []; // { el, x, y, size, colorIdx }
 
   function init() {
     if (initialized) return;
     initialized = true;
 
-    currentLevel = 0;
     const area = document.getElementById('explode-area');
     if (!area) return;
 
-    // 清空旧内容
     area.innerHTML = '';
+    dotList = [];
 
-    // 创建初始大圆点（第0级）
-    const startDot = createDot(area, area.clientWidth / 2, area.clientHeight / 2, 0, 160);
-    // 加 id 方便复用样式
-    startDot.el.id = 'explode-dot';
-    startDot.el.classList.add('explode-main-dot');
+    // 初始：一个大圆点居中
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const w = area.clientWidth || window.innerWidth;
+        const h = area.clientHeight || window.innerHeight;
+        const startSize = Math.min(w, h) * 0.38;
+        const colorIdx = Math.floor(Math.random() * COLORS.length);
+        spawnDot(area, w / 2, h / 2, startSize, colorIdx, true);
+      });
+    });
   }
 
-  /* ---- 创建可爆炸的圆点 ---- */
-  function createDot(area, cx, cy, colorIdx, size) {
+  /* ---- 创建一个圆点 ---- */
+  function spawnDot(area, x, y, size, colorIdx, animate) {
     const el = document.createElement('div');
     el.className = 'mini-dot';
     const color = COLORS[colorIdx % COLORS.length];
-    el.style.width = size + 'px';
-    el.style.height = size + 'px';
-    el.style.background = color;
-    el.style.boxShadow = `0 6px 24px ${color}88`;
-    el.style.position = 'absolute';
-    el.style.borderRadius = '50%';
-    el.style.left = cx + 'px';
-    el.style.top = cy + 'px';
-    el.style.transform = 'translate(-50%, -50%)';
-    el.style.cursor = 'pointer';
-    el.style.touchAction = 'none';
+
+    el.style.cssText = `
+      position: absolute;
+      border-radius: 50%;
+      cursor: pointer;
+      touch-action: none;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      box-shadow: 0 4px 16px ${color}88;
+      left: ${x}px;
+      top: ${y}px;
+      transform: translate(-50%, -50%) scale(${animate ? 0 : 1});
+      transition: ${animate ? 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)' : 'none'};
+    `;
+
     area.appendChild(el);
 
-    const dotObj = { el, x: cx, y: cy, size, colorIdx: colorIdx % COLORS.length, level: currentLevel };
+    if (animate) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+      });
+    }
+
+    const dotObj = { el, x, y, size, colorIdx: colorIdx % COLORS.length };
+    dotList.push(dotObj);
     bindDotEvents(area, dotObj);
     return dotObj;
   }
 
-  /* ---- 绑定长按分裂 + 点击变色 ---- */
+  /* ---- 点击事件 ---- */
   function bindDotEvents(area, dotObj) {
     const el = dotObj.el;
-    let pressTimer = null;
-    let pressStartTime = 0;
-    let moved = false;
-    let startX = 0, startY = 0;
+    let startX = 0, startY = 0, moved = false;
 
-    function onPressStart(e) {
+    const onStart = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const touch = e.touches ? e.touches[0] : e;
-      startX = touch.clientX;
-      startY = touch.clientY;
+      const t = e.touches ? e.touches[0] : e;
+      startX = t.clientX; startY = t.clientY;
       moved = false;
+    };
 
-      // 充能动画
-      el.classList.add('charging');
-      pressStartTime = Date.now();
+    const onMove = (e) => {
+      const t = e.touches ? e.touches[0] : e;
+      if (Math.abs(t.clientX - startX) > 8 || Math.abs(t.clientY - startY) > 8) moved = true;
+    };
 
-      pressTimer = setTimeout(() => {
-        el.classList.remove('charging');
-        tryExplode(area, dotObj);
-      }, 1500);
-    }
-
-    function onPressMove(e) {
-      const touch = e.touches ? e.touches[0] : e;
-      if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
-        moved = true;
-        cancelPress();
-      }
-    }
-
-    function onPressEnd(e) {
+    const onEnd = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const held = Date.now() - pressStartTime;
-      cancelPress();
+      if (moved) return;
+      onTap(dotObj, area);
+    };
 
-      if (!moved && held < 1500) {
-        // 短按：变色
-        dotObj.colorIdx = (dotObj.colorIdx + 1) % COLORS.length;
-        const color = COLORS[dotObj.colorIdx];
-        el.style.background = color;
-        el.style.boxShadow = `0 6px 24px ${color}88`;
-        AudioEngine.playNoteByColor(dotObj.colorIdx);
-        // 弹跳
-        el.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
-        el.style.transform = 'translate(-50%,-50%) scale(1.4)';
-        setTimeout(() => { el.style.transform = 'translate(-50%,-50%) scale(1)'; }, 200);
-      }
-    }
-
-    function cancelPress() {
-      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-      el.classList.remove('charging');
-    }
-
-    el.addEventListener('touchstart', onPressStart, { passive: false });
-    el.addEventListener('touchmove', onPressMove, { passive: false });
-    el.addEventListener('touchend', onPressEnd, { passive: false });
-    el.addEventListener('touchcancel', () => cancelPress(), { passive: false });
-
-    el.addEventListener('mousedown', onPressStart);
-    el.addEventListener('mousemove', onPressMove);
-    el.addEventListener('mouseup', onPressEnd);
-    el.addEventListener('mouseleave', () => cancelPress());
+    el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: false });
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseup', onEnd);
   }
 
-  /* ---- 尝试分裂 ---- */
-  function tryExplode(area, dotObj) {
-    // 找到当前整体处于哪个级别
-    const allDots = area.querySelectorAll('.mini-dot');
-    const count = allDots.length;
+  /* ---- 点击处理：分裂 or 变色 ---- */
+  function onTap(dotObj, area) {
+    const { el, x, y, size, colorIdx } = dotObj;
+    const childSize = size * SPLIT_RATIO;
 
-    // 找下一个分裂目标数量
-    const nextCount = SPLIT_LEVELS.find(n => n > count);
-    if (!nextCount) return; // 已到16，不再分裂
+    if (childSize < MIN_SIZE) {
+      // 太小了，只变色
+      dotObj.colorIdx = (dotObj.colorIdx + 1) % COLORS.length;
+      const color = COLORS[dotObj.colorIdx];
+      el.style.background = color;
+      el.style.boxShadow = `0 4px 12px ${color}88`;
+      AudioEngine.playNoteByColor(dotObj.colorIdx);
+      el.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+      el.style.transform = 'translate(-50%,-50%) scale(1.5)';
+      setTimeout(() => { el.style.transform = 'translate(-50%,-50%) scale(1)'; }, 200);
+      return;
+    }
 
-    // 要生成几个子点
-    const childCount = nextCount - count + 1; // 替换自身 + 新增
-
+    // 分裂动画：自身先放大再消失
     AudioEngine.playExplode();
-
-    // 记录爆炸中心
-    const cx = dotObj.x;
-    const cy = dotObj.y;
-    const parentSize = dotObj.size;
-    const areaW = area.clientWidth;
-    const areaH = area.clientHeight;
-
-    // 消除自身
-    const el = dotObj.el;
-    el.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
-    el.style.transform = 'translate(-50%,-50%) scale(2)';
+    el.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+    el.style.transform = 'translate(-50%,-50%) scale(1.4)';
     el.style.opacity = '0';
     el.style.pointerEvents = 'none';
+
+    // 从列表移除
+    dotList = dotList.filter(d => d !== dotObj);
 
     setTimeout(() => {
       el.remove();
 
-      // 子圆点大小 = 父圆点 * 0.7，最小40
-      const childSize = Math.max(40, parentSize * 0.7);
-      const margin = childSize / 2 + 10;
+      // 生成两个子点，分散在父点两侧
+      const areaW = area.clientWidth;
+      const areaH = area.clientHeight;
+      const spread = childSize * 1.1 + 10;
+      const angle = Math.random() * Math.PI * 2;
 
-      for (let i = 0; i < childCount; i++) {
-        // 围绕爆炸中心散布
-        const angle = (i / childCount) * Math.PI * 2 + Math.random() * 0.5;
-        const radius = 60 + Math.random() * Math.min(areaW, areaH) * 0.25;
-        let tx = cx + Math.cos(angle) * radius;
-        let ty = cy + Math.sin(angle) * radius;
+      for (let i = 0; i < 2; i++) {
+        const dir = i === 0 ? 1 : -1;
+        let tx = x + Math.cos(angle) * spread * dir;
+        let ty = y + Math.sin(angle) * spread * dir;
 
         // 边界夹紧
-        tx = Math.max(margin, Math.min(areaW - margin, tx));
-        ty = Math.max(margin, Math.min(areaH - margin, ty));
+        const r = childSize / 2;
+        tx = Math.max(r, Math.min(areaW - r, tx));
+        ty = Math.max(r, Math.min(areaH - r, ty));
 
-        const colorIdx = Math.floor(Math.random() * COLORS.length);
-        const d = createDot(area, cx, cy, colorIdx, childSize);
-
-        // 动画到目标位置
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const delay = i * 30;
-            d.el.style.transition = `left ${0.4}s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms,
-                                     top  ${0.4}s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms,
-                                     transform ${0.35}s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`;
-            d.el.style.left = tx + 'px';
-            d.el.style.top = ty + 'px';
-            d.x = tx;
-            d.y = ty;
-          });
-        });
+        const newColorIdx = (colorIdx + i + 1) % COLORS.length;
+        spawnDot(area, tx, ty, childSize, newColorIdx, true);
       }
-    }, 200);
+
+      AudioEngine.playNoteByColor((colorIdx + 1) % COLORS.length);
+    }, 180);
   }
 
   return { init };
