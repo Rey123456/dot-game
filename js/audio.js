@@ -5,16 +5,25 @@
 
 const AudioEngine = (() => {
   let ctx = null;
+  let masterGain = null;
 
   function getCtx() {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // 全局音量节点，统一控制
+      masterGain = ctx.createGain();
+      masterGain.gain.value = 2.5; // 整体音量倍数
+      masterGain.connect(ctx.destination);
     }
-    // 处理被浏览器暂停的情况
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
     return ctx;
+  }
+
+  function getDest() {
+    getCtx();
+    return masterGain;
   }
 
   // 七个音调的频率 (哆来咪发索拉西)
@@ -52,7 +61,7 @@ const AudioEngine = (() => {
     const gain = ac.createGain();
 
     osc.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(getDest());
 
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, ac.currentTime);
@@ -83,7 +92,7 @@ const AudioEngine = (() => {
     const osc = ac.createOscillator();
     const gain = ac.createGain();
     osc.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(getDest());
 
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(600, ac.currentTime);
@@ -125,7 +134,7 @@ const AudioEngine = (() => {
 
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(getDest());
     source.start(ac.currentTime);
   }
 
@@ -155,7 +164,7 @@ const AudioEngine = (() => {
 
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(getDest());
     source.start(ac.currentTime);
   }
 
