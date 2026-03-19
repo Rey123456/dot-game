@@ -1,14 +1,16 @@
 /**
  * page2-resize.js - 变大变小+变形
  * 双指捏合/张开缩放，拖拽边缘变形，松手果冻回弹
+ * 单指点击变色
  */
 
 const Page2 = (() => {
+  const COLORS = ['#FF4757', '#FF6B35', '#FFD700', '#2ED573', '#1E90FF', '#5352ED', '#A055FF'];
+  let colorIdx = 4; // 初始蓝色
   let initialized = false;
 
   // 当前变换状态
   let scaleX = 1, scaleY = 1;
-  let baseScaleX = 1, baseScaleY = 1;
 
   // 捏合状态
   let pinchStartDist = 0;
@@ -16,14 +18,11 @@ const Page2 = (() => {
   let pinchStartScaleY = 1;
   let isPinching = false;
 
-  // 拖拽变形状态
+  // 拖拽/点击状态
   let isDragging = false;
   let dragStartX = 0, dragStartY = 0;
   let dragStartScaleX = 1, dragStartScaleY = 1;
-
-  // 圆点位置（页面百分比）
-  let dotCX = 50, dotCY = 50; // 中心
-  let baseDotW = 150; // 基准宽度px
+  let touchMoved = false;
 
   function init() {
     if (initialized) return;
@@ -35,7 +34,8 @@ const Page2 = (() => {
 
     // 重置状态
     scaleX = 1; scaleY = 1;
-    baseScaleX = 1; baseScaleY = 1;
+    colorIdx = 4;
+    dot.style.background = COLORS[colorIdx];
     applyTransform(dot);
 
     area.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -66,9 +66,10 @@ const Page2 = (() => {
       pinchStartScaleX = scaleX;
       pinchStartScaleY = scaleY;
     } else if (touches.length === 1) {
-      // 单指拖拽变形
+      // 单指：记录起点，区分点击 vs 拖拽
       isDragging = true;
       isPinching = false;
+      touchMoved = false;
       dragStartX = touches[0].clientX;
       dragStartY = touches[0].clientY;
       dragStartScaleX = scaleX;
@@ -85,20 +86,16 @@ const Page2 = (() => {
       const d = dist(touches[0], touches[1]);
       const ratio = d / pinchStartDist;
 
-      // 判断捏合方向（水平 vs 垂直）
       const dx = Math.abs(touches[0].clientX - touches[1].clientX);
       const dy = Math.abs(touches[0].clientY - touches[1].clientY);
 
       if (dx > dy * 1.5) {
-        // 主要水平方向
         scaleX = clamp(pinchStartScaleX * ratio, 0.3, 4);
         scaleY = pinchStartScaleY;
       } else if (dy > dx * 1.5) {
-        // 主要垂直方向
         scaleY = clamp(pinchStartScaleY * ratio, 0.3, 4);
         scaleX = pinchStartScaleX;
       } else {
-        // 等比缩放
         scaleX = clamp(pinchStartScaleX * ratio, 0.3, 4);
         scaleY = clamp(pinchStartScaleY * ratio, 0.3, 4);
       }
@@ -109,22 +106,47 @@ const Page2 = (() => {
       const dx = (touches[0].clientX - dragStartX) / 100;
       const dy = (touches[0].clientY - dragStartY) / 100;
 
+      if (Math.abs(touches[0].clientX - dragStartX) > 8 ||
+          Math.abs(touches[0].clientY - dragStartY) > 8) {
+        touchMoved = true;
+      }
+
       scaleX = clamp(dragStartScaleX + dx, 0.3, 4);
       scaleY = clamp(dragStartScaleY + dy, 0.3, 4);
 
-      applyTransform(dot, false); // 变形时不用圆角过渡
+      applyTransform(dot, false);
     }
   }
 
   function onTouchEnd(e) {
     e.preventDefault();
+    const dot = document.getElementById('resize-dot');
+
+    if (isDragging && !touchMoved && !isPinching) {
+      // 单指点击（未移动）→ 变色
+      changeColor(dot);
+    } else {
+      // 拖拽或捏合结束 → 果冻回弹
+      jellyRebound(dot);
+      AudioEngine.playBounce();
+    }
+
     isPinching = false;
     isDragging = false;
+    touchMoved = false;
+  }
 
-    // 果冻回弹：基于当前比例，朝中间靠近一点
-    const dot = document.getElementById('resize-dot');
-    jellyRebound(dot);
-    AudioEngine.playBounce();
+  function changeColor(dot) {
+    colorIdx = (colorIdx + 1) % COLORS.length;
+    const color = COLORS[colorIdx];
+    dot.style.transition = 'background 0.3s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+    dot.style.background = color;
+    dot.style.boxShadow = `0 8px 40px ${color}88`;
+    AudioEngine.playNoteByColor(colorIdx);
+    // 小弹跳
+    const prev = dot.style.transform;
+    dot.style.transform = `${prev} scale(1.15)`;
+    setTimeout(() => { dot.style.transform = prev; }, 200);
   }
 
   // 桌面鼠标事件（用于测试）

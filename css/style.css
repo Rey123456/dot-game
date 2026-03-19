@@ -77,14 +77,18 @@ html, body {
    ============================================================ */
 .dots-container {
   display: flex;
-  gap: 36px;
+  gap: clamp(16px, 4vw, 36px);
   align-items: center;
   justify-content: center;
+  padding: 0 clamp(16px, 5vw, 40px);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .interactive-dot {
-  width: 110px;
-  height: 110px;
+  width: clamp(70px, 22vw, 120px);
+  height: clamp(70px, 22vw, 120px);
+  flex-shrink: 0;
   background: #FF4757;
 }
 
