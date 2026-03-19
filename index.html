@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="white">
+  <title>点点点</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Page 0: 开始页 -->
+  <div class="page active" id="page-0">
+    <div class="start-dot" id="start-dot"></div>
+  </div>
+
+  <!-- Page 1: 认识圆点·变色·音符 -->
+  <div class="page" id="page-1">
+    <div class="hint" id="hint-1">
+      <span class="hint-icon">👆</span>
+      <span class="hint-text">点一点</span>
+    </div>
+    <div class="dots-container" id="dots-container-1">
+      <div class="dot interactive-dot" data-index="0"></div>
+      <div class="dot interactive-dot" data-index="1"></div>
+      <div class="dot interactive-dot" data-index="2"></div>
+    </div>
+    <div class="next-hint hidden" id="next-hint-1">
+      <span class="next-arrow">→</span>
+    </div>
+  </div>
+
+  <!-- Page 2: 变大变小+变形 -->
+  <div class="page" id="page-2">
+    <div class="hint" id="hint-2">
+      <span class="hint-icon">🤏</span>
+    </div>
+    <div class="resize-area" id="resize-area">
+      <div class="dot resize-dot" id="resize-dot"></div>
+    </div>
+    <div class="nav-arrow next-page-btn" data-target="3">→</div>
+  </div>
+
+  <!-- Page 3: 圆点大爆炸 -->
+  <div class="page" id="page-3">
+    <div class="hint" id="hint-3">
+      <span class="hint-icon">👇</span>
+      <span class="hint-text">长按</span>
+    </div>
+    <div class="explode-area" id="explode-area">
+      <div class="dot explode-main-dot" id="explode-dot"></div>
+    </div>
+    <div class="nav-arrow next-page-btn" data-target="4">→</div>
+  </div>
+
+  <!-- Page 4: 摇一摇·重力 -->
+  <div class="page" id="page-4">
+    <div class="hint" id="hint-4">
+      <span class="hint-icon">📱</span>
+      <span class="hint-text">摇一摇</span>
+    </div>
+    <div class="shake-area" id="shake-area"></div>
+    <button class="shake-permission-btn" id="shake-permission-btn">开始摇一摇 🎲</button>
+    <div class="nav-arrow next-page-btn" data-target="5">→</div>
+  </div>
+
+  <!-- Page 5: 划线连点 -->
+  <div class="page" id="page-5">
+    <div class="hint" id="hint-5">
+      <span class="hint-icon">☝️</span>
+      <span class="hint-text">连一连</span>
+    </div>
+    <canvas id="connect-canvas"></canvas>
+    <div class="connect-dots-layer" id="connect-dots-layer"></div>
+    <div class="nav-arrow next-page-btn hidden" id="next-btn-5" data-target="6">→</div>
+  </div>
+
+  <!-- Page 6: 自由画布 -->
+  <div class="page" id="page-6">
+    <div class="hint" id="hint-6">
+      <span class="hint-icon">✏️</span>
+      <span class="hint-text">随便画</span>
+    </div>
+    <canvas id="free-canvas"></canvas>
+    <div class="free-dots-layer" id="free-dots-layer"></div>
+    <button class="save-btn" id="save-btn">📷</button>
+    <div class="nav-arrow next-page-btn" data-target="7">→</div>
+  </div>
+
+  <!-- Page 7: 结束页 -->
+  <div class="page" id="page-7">
+    <div class="end-confetti" id="end-confetti"></div>
+    <div class="end-face-dot" id="end-face-dot">😊</div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/pages/page0-start.js"></script>
+  <script src="js/pages/page1-dots.js"></script>
+  <script src="js/pages/page2-resize.js"></script>
+  <script src="js/pages/page3-explode.js"></script>
+  <script src="js/pages/page4-shake.js"></script>
+  <script src="js/pages/page5-connect.js"></script>
+  <script src="js/pages/page6-canvas.js"></script>
+  <script src="js/pages/page7-end.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
