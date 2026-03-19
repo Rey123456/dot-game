@@ -29,10 +29,14 @@ const Page4 = (() => {
     const permBtn = document.getElementById('shake-permission-btn');
     if (!area) return;
 
-    // 清空并重建点
+    // 清空并重建点（延迟一帧确保页面已渲染，clientWidth 有值）
     area.innerHTML = '';
     dots = [];
-    createDots(area);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        createDots(area);
+      });
+    });
 
     // iOS 权限处理
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -146,6 +150,11 @@ const Page4 = (() => {
   function createDots(area) {
     const w = area.clientWidth || window.innerWidth;
     const h = area.clientHeight || window.innerHeight;
+    // 如果还是拿不到尺寸，100ms 后重试
+    if (w < 10 || h < 10) {
+      setTimeout(() => createDots(area), 100);
+      return;
+    }
     const margin = 60;
 
     for (let i = 0; i < DOT_COUNT; i++) {
