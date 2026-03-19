@@ -219,5 +219,14 @@ const Page5 = (() => {
     }
   }
 
-  return { init };
+  function reset() {
+    initialized = false;
+    nextTarget = 1;
+    dots = [];
+    celebrated = false;
+    isDrawing = false;
+    fromDotIdx = -1;
+  }
+
+  return { init, reset };
 })();

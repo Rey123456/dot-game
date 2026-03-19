@@ -159,5 +159,10 @@ const Page3 = (() => {
     }, 180);
   }
 
-  return { init };
+  function reset() {
+    initialized = false;
+    dotList = [];
+  }
+
+  return { init, reset };
 })();

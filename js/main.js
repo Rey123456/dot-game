@@ -18,10 +18,15 @@ const App = (() => {
     7: () => Page7 && Page7.init(),
   };
 
-  // 页面销毁钩子
+  // 页面销毁钩子（离开页面时调用）
   const pageDestroys = {
+    0: () => Page0 && Page0.reset && Page0.reset(),
+    1: () => Page1 && Page1.reset && Page1.reset(),
+    3: () => Page3 && Page3.reset && Page3.reset(),
     4: () => Page4 && Page4.destroy && Page4.destroy(),
+    5: () => Page5 && Page5.reset && Page5.reset(),
     6: () => Page6 && Page6.destroy && Page6.destroy(),
+    7: () => Page7 && Page7.reset && Page7.reset(),
   };
 
   function goToPage(n) {

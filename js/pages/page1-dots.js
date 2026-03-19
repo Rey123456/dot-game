@@ -61,5 +61,11 @@ const Page1 = (() => {
     }
   }
 
-  return { init };
+  function reset() {
+    initialized = false;
+    totalClicks = 0;
+    dotColorIdx[0] = 0; dotColorIdx[1] = 1; dotColorIdx[2] = 2;
+  }
+
+  return { init, reset };
 })();

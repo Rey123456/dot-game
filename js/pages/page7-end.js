@@ -36,10 +36,8 @@ const Page7 = (() => {
     // 点击任意位置重新开始
     function onRestart(e) {
       e.preventDefault();
-      clearInterval(confettiInterval);
-      confettiInterval = null;
-      confetti.innerHTML = '';
-      initialized = false;
+      // 先清理自己
+      reset();
       App.goToPage(0);
     }
 
@@ -78,5 +76,12 @@ const Page7 = (() => {
     });
   }
 
-  return { init };
+  function reset() {
+    if (confettiInterval) { clearInterval(confettiInterval); confettiInterval = null; }
+    const confetti = document.getElementById('end-confetti');
+    if (confetti) confetti.innerHTML = '';
+    initialized = false;
+  }
+
+  return { init, reset };
 })();
