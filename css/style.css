@@ -331,7 +331,8 @@ html, body {
   100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
 }
 
-.save-btn {
+.save-btn,
+.icon-btn {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -350,7 +351,13 @@ html, body {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.save-btn:active { transform: scale(0.9); }
+.save-btn:active,
+.icon-btn:active { transform: scale(0.9); }
+
+/* 页5 刷新按钮：右上角，保存按钮左边 */
+#retry-btn-5 {
+  right: 84px; /* save-btn(20+56+8) */
+}
 
 /* ============================================================
    Page 7 - 结束页
@@ -406,10 +413,11 @@ html, body {
   font-size: 52px;
   color: #FF4757;
   cursor: pointer;
-  animation: arrowPulse 1s ease-in-out infinite;
+  animation: none;
   z-index: 10;
   padding: 10px;
   line-height: 1;
+  opacity: 0.85;
 }
 
 .nav-arrow.back-btn {

@@ -1,64 +1,82 @@
 /**
- * page5-connect.js - 划线连点
- * 带数字编号的圆点（1-5），依次按顺序连接
- * 手指从当前目标点出发划线到下一个目标点完成连接
- * 全部连完后闪光+庆祝+显示下一页按钮
+ * page5-connect.js - 划线连点（难度递增）
+ * 初始5个点，完成后可点🔄继续，变成6个点……最多10个
+ * 从1号点出发，手指划过目标点自动吸附
  */
 
 const Page5 = (() => {
-  const COLORS = ['#FF4757', '#FF6B35', '#FFD700', '#2ED573', '#1E90FF'];
-  const DOT_POSITIONS = [
-    { x: 0.5,  y: 0.22 },
-    { x: 0.22, y: 0.48 },
-    { x: 0.78, y: 0.42 },
-    { x: 0.35, y: 0.70 },
-    { x: 0.65, y: 0.70 },
-  ];
+  const COLORS = ['#FF4757', '#FF6B35', '#FFD700', '#2ED573', '#1E90FF',
+                  '#5352ED', '#A055FF', '#FF78C4', '#00CEC9', '#FDCB6E'];
+
+  // 随机生成 n 个点的布局（避免重叠，保持在安全区内）
+  function generatePositions(n) {
+    const positions = [];
+    const margin = 0.12;
+    let attempts = 0;
+    while (positions.length < n && attempts < 500) {
+      attempts++;
+      const x = margin + Math.random() * (1 - margin * 2);
+      const y = 0.18 + Math.random() * (0.75 - 0.18); // 避开顶部hint和底部箭头
+      // 检查与已有点的距离
+      const minDist = n <= 6 ? 0.22 : n <= 8 ? 0.18 : 0.15;
+      const ok = positions.every(p => Math.hypot(p.x - x, p.y - y) >= minDist);
+      if (ok) positions.push({ x, y });
+    }
+    return positions;
+  }
 
   let initialized = false;
-  let nextTarget = 1;   // 下一个要连到的点（从1号开始，先点1，再连到2…）
+  let currentDotCount = 5; // 当前难度（点数）
+  let nextTarget = 1;
   let dots = [];
   let canvas, ctx;
   let page;
 
-  // 当前笔画状态
   let isDrawing = false;
-  let fromDotIdx = -1;  // 正在从哪个点出发
   let lastX = 0, lastY = 0;
   let lineColor = '#FF4757';
   let celebrated = false;
 
-  // 事件处理函数引用（用于解绑）
   let _onTouchStart, _onTouchMove, _onTouchEnd;
   let _onMouseDown, _onMouseMove, _onMouseUp;
 
   function init() {
     if (initialized) return;
     initialized = true;
+    currentDotCount = 5; // 每次进入页面从5个点开始
+    startRound();
+  }
 
+  function startRound() {
     nextTarget = 1;
     dots = [];
     isDrawing = false;
-    fromDotIdx = -1;
     celebrated = false;
 
     canvas = document.getElementById('connect-canvas');
     const layer = document.getElementById('connect-dots-layer');
     page = document.getElementById('page-5');
+    const retryBtn = document.getElementById('retry-btn-5');
+    const nextBtn = document.getElementById('next-btn-5');
     if (!canvas || !layer || !page) return;
 
-    // canvas 尺寸
+    // 隐藏按钮
+    if (retryBtn) retryBtn.classList.add('hidden');
+    if (nextBtn) nextBtn.classList.add('hidden');
+
+    // canvas 重置
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     layer.innerHTML = '';
 
-    // 创建5个圆点
+    // 生成圆点
     const w = window.innerWidth;
     const h = window.innerHeight;
-    DOT_POSITIONS.forEach((pos, i) => {
+    const positions = generatePositions(currentDotCount);
+
+    positions.forEach((pos, i) => {
       const el = document.createElement('div');
       el.className = 'connect-dot';
       el.textContent = i + 1;
@@ -66,15 +84,17 @@ const Page5 = (() => {
       const y = pos.y * h;
       el.style.left = x + 'px';
       el.style.top = y + 'px';
-      el.style.background = COLORS[i];
+      el.style.background = COLORS[i % COLORS.length];
       layer.appendChild(el);
       dots.push({ el, x, y, num: i + 1, connected: false });
     });
 
-    // 高亮第1个目标点（起始点）
     highlightTarget(1);
 
-    // 绑定事件
+    // 解绑旧事件（防重复）
+    unbindEvents();
+
+    // 绑定新事件
     _onTouchStart = (e) => { e.preventDefault(); onStart(e.touches[0].clientX, e.touches[0].clientY); };
     _onTouchMove  = (e) => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); };
     _onTouchEnd   = (e) => { e.preventDefault(); onEnd(); };
@@ -88,14 +108,27 @@ const Page5 = (() => {
     page.addEventListener('mousedown',  _onMouseDown);
     page.addEventListener('mousemove',  _onMouseMove);
     page.addEventListener('mouseup',    _onMouseUp);
+
+    // 🔄 按钮：加难度重来
+    if (retryBtn) {
+      // 移除旧监听（克隆替换）
+      const newRetry = retryBtn.cloneNode(true);
+      retryBtn.parentNode.replaceChild(newRetry, retryBtn);
+      newRetry.addEventListener('click', onRetry);
+      newRetry.addEventListener('touchend', (e) => { e.preventDefault(); onRetry(); }, { passive: false });
+    }
   }
 
-  /* ---- 高亮当前目标点（发光脉冲） ---- */
+  function onRetry() {
+    if (currentDotCount < 10) currentDotCount++;
+    startRound();
+  }
+
   function highlightTarget(num) {
     dots.forEach(d => {
       if (d.num === num) {
         d.el.style.animation = 'dotFlash 0.8s ease-in-out infinite';
-        d.el.style.boxShadow = `0 0 0 6px ${COLORS[num-1]}88`;
+        d.el.style.boxShadow = `0 0 0 6px ${COLORS[(num - 1) % COLORS.length]}88`;
       } else if (!d.connected) {
         d.el.style.animation = '';
         d.el.style.boxShadow = '';
@@ -103,45 +136,35 @@ const Page5 = (() => {
     });
   }
 
-  /* ---- 触摸/鼠标开始 ---- */
   function onStart(x, y) {
     if (celebrated) return;
-
-    // 判断是否点在当前目标点（首次必须点1号，之后按顺序）
-    const targetNum = nextTarget === 1 ? 1 : nextTarget - 1; // 从上一个连接点出发，或第1个点
-    // 实际逻辑：从"最后一个已连接的点"或"1号点（未连接时）"出发
     const startDot = nextTarget === 1
       ? dots.find(d => d.num === 1)
       : dots.find(d => d.num === nextTarget - 1 && d.connected);
-
     if (!startDot) return;
 
     const dx = x - startDot.x;
     const dy = y - startDot.y;
-    if (Math.sqrt(dx * dx + dy * dy) > 70) return; // 必须从出发点附近开始
+    if (Math.sqrt(dx * dx + dy * dy) > 70) return;
 
     isDrawing = true;
-    fromDotIdx = startDot.num - 1;
     lastX = startDot.x;
     lastY = startDot.y;
-    lineColor = COLORS[startDot.num - 1];
+    lineColor = COLORS[(startDot.num - 1) % COLORS.length];
 
-    // 第1次点击：标记1号点为已连接
     if (nextTarget === 1) {
       startDot.connected = true;
       startDot.el.classList.add('connected');
       startDot.el.style.animation = '';
       AudioEngine.playNoteByColor(0);
       nextTarget = 2;
-      highlightTarget(2);
+      if (dots.length >= 2) highlightTarget(2);
     }
   }
 
-  /* ---- 触摸/鼠标移动（画线） ---- */
   function onMove(x, y) {
     if (!isDrawing || celebrated) return;
 
-    // 画线
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
     ctx.lineTo(x, y);
@@ -154,14 +177,12 @@ const Page5 = (() => {
     lastX = x;
     lastY = y;
 
-    // 检查是否到达下一个目标点
     if (nextTarget <= dots.length) {
       const target = dots.find(d => d.num === nextTarget && !d.connected);
       if (target) {
         const dx = x - target.x;
         const dy = y - target.y;
         if (Math.sqrt(dx * dx + dy * dy) < 60) {
-          // 吸附到目标点
           ctx.beginPath();
           ctx.moveTo(lastX, lastY);
           ctx.lineTo(target.x, target.y);
@@ -172,12 +193,12 @@ const Page5 = (() => {
           target.connected = true;
           target.el.classList.add('connected');
           target.el.style.animation = '';
-          AudioEngine.playNoteByColor(target.num - 1);
+          AudioEngine.playNoteByColor((target.num - 1) % COLORS.length);
           nextTarget++;
 
           if (nextTarget <= dots.length) {
             highlightTarget(nextTarget);
-            lineColor = COLORS[nextTarget - 2]; // 用已连接点的颜色继续
+            lineColor = COLORS[(nextTarget - 2) % COLORS.length];
           }
 
           if (nextTarget > dots.length) {
@@ -189,43 +210,49 @@ const Page5 = (() => {
     }
   }
 
-  /* ---- 触摸/鼠标结束 ---- */
   function onEnd() {
     isDrawing = false;
   }
 
-  /* ---- 庆祝 ---- */
   function celebrate() {
     if (celebrated) return;
     celebrated = true;
 
     AudioEngine.playCelebrate();
     dots.forEach(d => { d.el.classList.add('flash'); });
+    unbindEvents();
 
-    // 解绑事件，防止继续响应
-    page.removeEventListener('touchstart', _onTouchStart);
-    page.removeEventListener('touchmove',  _onTouchMove);
-    page.removeEventListener('touchend',   _onTouchEnd);
-    page.removeEventListener('mousedown',  _onMouseDown);
-    page.removeEventListener('mousemove',  _onMouseMove);
-    page.removeEventListener('mouseup',    _onMouseUp);
-
-    // 显示下一页按钮
+    // 显示🔄（如果还没到10个点）和→
+    const retryBtn = document.getElementById('retry-btn-5');
     const nextBtn = document.getElementById('next-btn-5');
+
+    if (retryBtn && currentDotCount < 10) {
+      retryBtn.classList.remove('hidden');
+    }
     if (nextBtn) {
       nextBtn.classList.remove('hidden');
-      // 确保按钮在最顶层
       nextBtn.style.zIndex = '100';
     }
   }
 
+  function unbindEvents() {
+    if (!page) return;
+    if (_onTouchStart) page.removeEventListener('touchstart', _onTouchStart);
+    if (_onTouchMove)  page.removeEventListener('touchmove',  _onTouchMove);
+    if (_onTouchEnd)   page.removeEventListener('touchend',   _onTouchEnd);
+    if (_onMouseDown)  page.removeEventListener('mousedown',  _onMouseDown);
+    if (_onMouseMove)  page.removeEventListener('mousemove',  _onMouseMove);
+    if (_onMouseUp)    page.removeEventListener('mouseup',    _onMouseUp);
+  }
+
   function reset() {
+    unbindEvents();
     initialized = false;
     nextTarget = 1;
     dots = [];
     celebrated = false;
     isDrawing = false;
-    fromDotIdx = -1;
+    currentDotCount = 5;
   }
 
   return { init, reset };
