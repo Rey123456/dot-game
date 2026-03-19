@@ -309,13 +309,15 @@ const Page6 = (() => {
     const page = document.getElementById('page-6');
     if (!page) return;
 
-    // 隐藏UI元素后截图
-    const saveBtn = document.getElementById('save-btn');
-    const hint = document.getElementById('hint-6');
-    const navArr = page.querySelector('.nav-arrow');
-    if (saveBtn) saveBtn.style.visibility = 'hidden';
-    if (hint) hint.style.visibility = 'hidden';
-    if (navArr) navArr.style.visibility = 'hidden';
+    // 截图前隐藏所有UI元素
+    const hideEls = [
+      document.getElementById('save-btn'),
+      document.getElementById('hint-6'),
+      ...page.querySelectorAll('.nav-arrow'),
+    ].filter(Boolean);
+    hideEls.forEach(el => { el.style.visibility = 'hidden'; });
+
+    const restoreUI = () => hideEls.forEach(el => { el.style.visibility = 'visible'; });
 
     if (typeof html2canvas !== 'undefined') {
       html2canvas(page, {
@@ -330,20 +332,14 @@ const Page6 = (() => {
         link.click();
       }).catch(err => {
         console.warn('截图失败:', err);
-      }).finally(() => {
-        if (saveBtn) saveBtn.style.visibility = 'visible';
-        if (hint) hint.style.visibility = 'visible';
-        if (navArr) navArr.style.visibility = 'visible';
-      });
+      }).finally(restoreUI);
     } else {
       // 回退：直接截 canvas
       const link = document.createElement('a');
       link.download = 'dot-game-' + Date.now() + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
-      if (saveBtn) saveBtn.style.visibility = 'visible';
-      if (hint) hint.style.visibility = 'visible';
-      if (navArr) navArr.style.visibility = 'visible';
+      restoreUI();
     }
   }
 

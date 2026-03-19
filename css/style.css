@@ -126,8 +126,8 @@ html, body {
   right: 40px;
   font-size: 48px;
   cursor: pointer;
-  animation: arrowPulse 1s ease-in-out infinite;
-  color: #FF4757;
+  animation: none;
+  color: #90A4AE;
 }
 
 @keyframes arrowPulse {
@@ -411,7 +411,7 @@ html, body {
   bottom: 50px;
   right: 40px;
   font-size: 52px;
-  color: #FF4757;
+  color: #90A4AE;
   cursor: pointer;
   animation: none;
   z-index: 10;

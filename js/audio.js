@@ -59,7 +59,7 @@ const AudioEngine = (() => {
 
     // 简单 envelope：快攻击，慢衰减
     gain.gain.setValueAtTime(0, ac.currentTime);
-    gain.gain.linearRampToValueAtTime(0.5, ac.currentTime + 0.02);
+    gain.gain.linearRampToValueAtTime(1.0, ac.currentTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
 
     osc.start(ac.currentTime);
@@ -91,7 +91,7 @@ const AudioEngine = (() => {
     osc.frequency.exponentialRampToValueAtTime(500, ac.currentTime + 0.18);
 
     gain.gain.setValueAtTime(0, ac.currentTime);
-    gain.gain.linearRampToValueAtTime(0.35, ac.currentTime + 0.02);
+    gain.gain.linearRampToValueAtTime(0.8, ac.currentTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.2);
 
     osc.start(ac.currentTime);
@@ -120,7 +120,7 @@ const AudioEngine = (() => {
     filter.frequency.value = 300;
 
     const gain = ac.createGain();
-    gain.gain.setValueAtTime(1.2, ac.currentTime);
+    gain.gain.setValueAtTime(2.0, ac.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
 
     source.connect(filter);
@@ -150,7 +150,7 @@ const AudioEngine = (() => {
     filter.Q.value = 0.5;
 
     const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.8, ac.currentTime);
+    gain.gain.setValueAtTime(1.5, ac.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.3);
 
     source.connect(filter);
