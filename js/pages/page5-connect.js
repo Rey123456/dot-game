@@ -138,27 +138,35 @@ const Page5 = (() => {
 
   function onStart(x, y) {
     if (celebrated) return;
-    const startDot = nextTarget === 1
-      ? dots.find(d => d.num === 1)
-      : dots.find(d => d.num === nextTarget - 1 && d.connected);
-    if (!startDot) return;
-
-    const dx = x - startDot.x;
-    const dy = y - startDot.y;
-    if (Math.sqrt(dx * dx + dy * dy) > 70) return;
-
-    isDrawing = true;
-    lastX = startDot.x;
-    lastY = startDot.y;
-    lineColor = COLORS[(startDot.num - 1) % COLORS.length];
 
     if (nextTarget === 1) {
-      startDot.connected = true;
-      startDot.el.classList.add('connected');
-      startDot.el.style.animation = '';
+      // 第一个点：需要从点1附近开始（70px内），给孩子明确起始感
+      const dot1 = dots.find(d => d.num === 1);
+      if (!dot1) return;
+      const dx = x - dot1.x;
+      const dy = y - dot1.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 70) return;
+
+      isDrawing = true;
+      lastX = dot1.x;
+      lastY = dot1.y;
+      lineColor = COLORS[0];
+      dot1.connected = true;
+      dot1.el.classList.add('connected');
+      dot1.el.style.animation = '';
       AudioEngine.playNoteByColor(0);
       nextTarget = 2;
       if (dots.length >= 2) highlightTarget(2);
+    } else {
+      // 后续点：手指从屏幕任意位置滑动即可，不限制起点
+      // 只要开始滑动就进入绘制状态，以上一个已连接点为线段起点
+      const prevDot = dots.find(d => d.num === nextTarget - 1 && d.connected);
+      if (!prevDot) return;
+
+      isDrawing = true;
+      lastX = prevDot.x;
+      lastY = prevDot.y;
+      lineColor = COLORS[(nextTarget - 2) % COLORS.length];
     }
   }
 

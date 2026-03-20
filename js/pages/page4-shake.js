@@ -39,12 +39,13 @@ const Page4 = (() => {
     });
 
     // iOS 权限处理
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // 判断是否需要申请权限：只要 requestPermission 方法存在就需要申请
+    // 不依赖 UA 判断，避免新款 iPad UA 为 Macintosh 导致误判
+    const needsPermission = typeof DeviceMotionEvent !== 'undefined' &&
+                            typeof DeviceMotionEvent.requestPermission === 'function';
 
-    if (isIOS && typeof DeviceMotionEvent !== 'undefined' &&
-        typeof DeviceMotionEvent.requestPermission === 'function') {
-      // iOS 13+：需要用户手势触发权限
+    if (needsPermission) {
+      // iOS 13+：需要用户手势触发权限，显示按钮
       if (permBtn) {
         permBtn.classList.remove('hidden');
         permBtn.addEventListener('click', requestIOSPermission, { once: true });
@@ -54,7 +55,7 @@ const Page4 = (() => {
         }, { once: true });
       }
     } else {
-      // Android / 桌面：直接启用
+      // Android / 桌面：直接启用（无需权限）
       if (permBtn) permBtn.classList.add('hidden');
       enableMotion();
     }
@@ -112,17 +113,26 @@ const Page4 = (() => {
 
   function onDeviceOrientation(e) {
     // gamma: 左右倾斜（-90到90），beta: 前后倾斜（-180到180）
-    const gamma = e.gamma || 0;
-    const beta  = e.beta  || 0;
+    let gamma = e.gamma || 0;
+    let beta  = e.beta  || 0;
 
-    // 平放时 beta≈0、gamma≈0，此时不施加重力
-    // 竖屏握持时 beta≈90，向左右倾斜时 gamma 偏移
+    // 横屏适配：横屏时 beta/gamma 物理含义对调
+    // screen.orientation.angle: 0=竖屏, 90=左横屏, 270=右横屏
+    const angle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    if (angle === 90) {
+      // 左横屏：gamma → gy，beta → -gx
+      [gamma, beta] = [beta, -gamma];
+    } else if (angle === -90 || angle === 270) {
+      // 右横屏：gamma → -gy，beta → gx
+      [gamma, beta] = [-beta, gamma];
+    }
+
     // 用死区 ±8° 避免平放时漂移
     const deadZone = 8;
     const gx = Math.abs(gamma) > deadZone ? gamma / 60 : 0;
-    const gy = Math.abs(beta) > deadZone ? (beta - 0) / 60 : 0; // 平放基准 beta=0
+    const gy = Math.abs(beta) > deadZone ? beta / 60 : 0;
 
-    gravX = clamp(gx, -1, 1) * 0.8;  // 加速度加倍
+    gravX = clamp(gx, -1, 1) * 0.8;
     gravY = clamp(gy, -1, 1) * 0.8;
   }
 
