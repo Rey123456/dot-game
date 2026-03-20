@@ -64,6 +64,13 @@ const Page6 = (() => {
     canvas.addEventListener('mousemove', onCanvasMouseMove);
     canvas.addEventListener('mouseup', onCanvasMouseUp);
 
+    // 橡皮擦按钮（清除画线）
+    const eraserBtn = document.getElementById('eraser-btn');
+    if (eraserBtn) {
+      eraserBtn.addEventListener('click', onErase);
+      eraserBtn.addEventListener('touchend', (e) => { e.preventDefault(); onErase(); }, { passive: false });
+    }
+
     // 保存按钮
     const saveBtn = document.getElementById('save-btn');
     if (saveBtn) {
@@ -304,43 +311,58 @@ const Page6 = (() => {
     lastDY = y;
   }
 
-  /* ---- 保存截图 ---- */
-  function onSave() {
-    const page = document.getElementById('page-6');
-    if (!page) return;
-
-    // 截图前隐藏所有UI元素
-    const hideEls = [
-      document.getElementById('save-btn'),
-      document.getElementById('hint-6'),
-      ...page.querySelectorAll('.nav-arrow'),
-    ].filter(Boolean);
-    hideEls.forEach(el => { el.style.visibility = 'hidden'; });
-
-    const restoreUI = () => hideEls.forEach(el => { el.style.visibility = 'visible'; });
-
-    if (typeof html2canvas !== 'undefined') {
-      html2canvas(page, {
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        allowTaint: true,
-        scale: window.devicePixelRatio || 1,
-      }).then(c => {
-        const link = document.createElement('a');
-        link.download = 'dot-game-' + Date.now() + '.png';
-        link.href = c.toDataURL('image/png');
-        link.click();
-      }).catch(err => {
-        console.warn('截图失败:', err);
-      }).finally(restoreUI);
-    } else {
-      // 回退：直接截 canvas
-      const link = document.createElement('a');
-      link.download = 'dot-game-' + Date.now() + '.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      restoreUI();
+  /* ---- 橡皮擦：清除画线 ---- */
+  function onErase() {
+    if (!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 弹跳反馈
+    const eraserBtn = document.getElementById('eraser-btn');
+    if (eraserBtn) {
+      eraserBtn.style.transform = 'scale(1.3)';
+      setTimeout(() => { eraserBtn.style.transform = ''; }, 200);
     }
+  }
+
+  /* ---- 保存截图（手动合并，避免 html2canvas 丢失 canvas 内容）---- */
+  function onSave() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+
+    // 创建临时合并 canvas
+    const merged = document.createElement('canvas');
+    merged.width = w * dpr;
+    merged.height = h * dpr;
+    const mCtx = merged.getContext('2d');
+    mCtx.scale(dpr, dpr);
+
+    // 1. 白色背景
+    mCtx.fillStyle = '#ffffff';
+    mCtx.fillRect(0, 0, w, h);
+
+    // 2. 画线层（直接 drawImage，无任何损失）
+    if (canvas) {
+      mCtx.drawImage(canvas, 0, 0, w, h);
+    }
+
+    // 3. 圆点层（遍历每个圆点，按位置和颜色绘制）
+    freeDots.forEach(dot => {
+      const r = dot.size / 2;
+      const color = COLORS[dot.colorIdx];
+      mCtx.beginPath();
+      mCtx.arc(dot.x, dot.y, r, 0, Math.PI * 2);
+      mCtx.fillStyle = color;
+      mCtx.shadowColor = color + '88';
+      mCtx.shadowBlur = 14;
+      mCtx.fill();
+      mCtx.shadowBlur = 0;
+    });
+
+    // 4. 导出下载
+    const link = document.createElement('a');
+    link.download = 'dot-game-' + Date.now() + '.png';
+    link.href = merged.toDataURL('image/png');
+    link.click();
   }
 
   function destroy() {

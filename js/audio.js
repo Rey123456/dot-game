@@ -12,7 +12,7 @@ const AudioEngine = (() => {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       // 全局音量节点，统一控制
       masterGain = ctx.createGain();
-      masterGain.gain.value = 0.8; // 整体音量（>1.0 会削波失真）
+      masterGain.gain.value = 2.5; // 整体音量倍数
       masterGain.connect(ctx.destination);
     }
     if (ctx.state === 'suspended') {
