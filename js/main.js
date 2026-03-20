@@ -22,6 +22,7 @@ const App = (() => {
   const pageDestroys = {
     0: () => Page0 && Page0.reset && Page0.reset(),
     1: () => Page1 && Page1.reset && Page1.reset(),
+    2: () => Page2 && Page2.destroy && Page2.destroy(),
     3: () => Page3 && Page3.reset && Page3.reset(),
     4: () => Page4 && Page4.destroy && Page4.destroy(),
     5: () => Page5 && Page5.reset && Page5.reset(),
@@ -55,14 +56,20 @@ const App = (() => {
   // 绑定翻页按钮（前进 + 后退，通过 data-target 指定目标页）
   function bindNavArrows() {
     document.querySelectorAll('.next-page-btn, .prev-page-btn').forEach(btn => {
-      const handler = (e) => {
-        if (e.type === 'touchend') e.preventDefault();
+      let lastTouchEnd = 0;
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        lastTouchEnd = Date.now();
         const target = parseInt(btn.dataset.target);
         if (!isNaN(target)) goToPage(target);
         else nextPage();
-      };
-      btn.addEventListener('click', handler);
-      btn.addEventListener('touchend', handler, { passive: false });
+      }, { passive: false });
+      btn.addEventListener('click', (e) => {
+        if (Date.now() - lastTouchEnd < 300) return; // 屏蔽 touch 后补发的 click
+        const target = parseInt(btn.dataset.target);
+        if (!isNaN(target)) goToPage(target);
+        else nextPage();
+      });
     });
   }
 

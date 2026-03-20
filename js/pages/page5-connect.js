@@ -145,7 +145,7 @@ const Page5 = (() => {
       if (!dot1) return;
       const dx = x - dot1.x;
       const dy = y - dot1.y;
-      if (Math.sqrt(dx * dx + dy * dy) > 70) return;
+      if (Math.sqrt(dx * dx + dy * dy) > 100) return;
 
       isDrawing = true;
       lastX = dot1.x;

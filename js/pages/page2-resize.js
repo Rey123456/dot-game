@@ -205,9 +205,16 @@ const Page2 = (() => {
     dot.style.borderRadius = '50%';
   }
 
+  function destroy() {
+    // 清理 window 级别的鼠标事件
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+    initialized = false;
+  }
+
   function clamp(v, min, max) {
     return Math.min(Math.max(v, min), max);
   }
 
-  return { init };
+  return { init, destroy };
 })();

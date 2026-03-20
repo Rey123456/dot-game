@@ -6,8 +6,9 @@
 
 const Page3 = (() => {
   const COLORS = ['#FF4757', '#FF6B35', '#FFD700', '#2ED573', '#1E90FF', '#5352ED', '#A055FF'];
-  const MIN_SIZE = 18; // 最小不再分裂
+  const MIN_SIZE = 18;   // 最小不再分裂
   const SPLIT_RATIO = 0.72; // 每次分裂后子点大小比例
+  const MAX_DOTS = 50;   // 最多圆点数，防止页面卡死
 
   let initialized = false;
   let dotList = []; // { el, x, y, size, colorIdx }
@@ -109,7 +110,7 @@ const Page3 = (() => {
     const { el, x, y, size, colorIdx } = dotObj;
     const childSize = size * SPLIT_RATIO;
 
-    if (childSize < MIN_SIZE) {
+    if (dotList.length >= MAX_DOTS || childSize < MIN_SIZE) {
       // 太小了，只变色
       dotObj.colorIdx = (dotObj.colorIdx + 1) % COLORS.length;
       const color = COLORS[dotObj.colorIdx];

@@ -358,11 +358,37 @@ const Page6 = (() => {
       mCtx.shadowBlur = 0;
     });
 
-    // 4. 导出下载
-    const link = document.createElement('a');
-    link.download = 'dot-game-' + Date.now() + '.png';
-    link.href = merged.toDataURL('image/png');
-    link.click();
+    // 4. 导出
+    const dataUrl = merged.toDataURL('image/png');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      // iOS Safari 不支持 download 属性，打开新页面让用户长按保存
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>保存图片</title>
+          <style>body{margin:0;background:#fff;text-align:center;font-family:sans-serif}
+          img{max-width:100%;display:block}
+          p{padding:16px;color:#666;font-size:16px}</style></head>
+          <body>
+          <img src="${dataUrl}">
+          <p>长按图片 → 存储到相册</p>
+          </body></html>
+        `);
+        win.document.close();
+      }
+    } else {
+      // Android / 桌面：直接触发下载
+      const link = document.createElement('a');
+      link.download = 'dot-game-' + Date.now() + '.png';
+      link.href = dataUrl;
+      link.click();
+    }
   }
 
   function destroy() {
